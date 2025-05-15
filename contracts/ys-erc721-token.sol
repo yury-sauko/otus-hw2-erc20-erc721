@@ -67,7 +67,7 @@ contract YSERC721token is IERC721, IERC721Metadata, IERC721Errors {
         uint256 _tokenId, 
         bytes memory _data
     ) external override {
-        _saveTransfer(_from, _to, _tokenId, _data);
+        _safeTransfer(_from, _to, _tokenId, _data);
     }
 
     function safeTransferFrom(
@@ -75,7 +75,7 @@ contract YSERC721token is IERC721, IERC721Metadata, IERC721Errors {
         address _to, 
         uint256 _tokenId
     ) external override {
-        _saveTransfer(_from, _to, _tokenId, "");
+        _safeTransfer(_from, _to, _tokenId, "");
     }
 
     function approve(
@@ -152,10 +152,13 @@ contract YSERC721token is IERC721, IERC721Metadata, IERC721Errors {
         if (_to == address(0) || _from == _to) {
             revert ERC721InvalidReceiver(_to);
         }
-        if (ownerOf[_tokenId] != msg.sender) {
+        if (ownerOf[_tokenId] != _from) {
             revert ERC721IncorrectOwner(msg.sender, _tokenId, ownerOf[_tokenId]);
         }
-        if (_from != msg.sender) {
+        if (_from != msg.sender && 
+            getApproved[_tokenId] != msg.sender && 
+            !isApprovedForAll[_from][msg.sender]
+            ) {
             revert ERC721InsufficientApproval(_from, _tokenId);
         }
 
@@ -163,7 +166,7 @@ contract YSERC721token is IERC721, IERC721Metadata, IERC721Errors {
         emit Transfer(_from, _to, _tokenId);
     }
 
-    function _saveTransfer(
+    function _safeTransfer(
         address _from, 
         address _to, 
         uint256 _tokenId, 
